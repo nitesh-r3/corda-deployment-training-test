@@ -100,6 +100,11 @@ Your instructor will assign an AKS cluster for you to continue.
         Resolving deltas: 100% (26/26), done.
    ```
 
+  Switch to v1.2 tag as for this lab we will be using CENM v1.2
+   ```
+        git chekout v1.2
+   ```
+
    Change directory to cenm-deployment/k8s and list the files.
    ```
         $ cd cenm-deployment/k8s
@@ -509,6 +514,42 @@ It’s worth noting the node hasn’t actually run yet, so this is an opportunit
     Before | After
     ------ | -----
     ![](resources/CENMLabNodeconfBefore.jpg) | ![](resources/CENMLabNodeconfAfter.jpg)
+
+25.1 After making the above changes node.conf should like below
+```
+
+dataSourceProperties {
+    dataSource {
+        password=YjmS2VXWJvxxD7z9M8v8j9HDoWvayqab
+        url="jdbc:h2:file:/opt/corda/persistence/persistence;DB_CLOSE_ON_EXIT=FALSE;WRITE_DELAY=0;LOCK_TIMEOUT=10000"
+        user=sa
+    }
+    dataSourceClassName="org.h2.jdbcx.JdbcDataSource"
+}
+detectPublicIp=false
+emailAddress="myemail@r3.com"
+myLegalName="O=PartyA, L=New York, C=US"
+networkServices {
+    doormanURL="http://DOORMAN_IP:10000"
+    networkMapURL="http://NETWORK_MAP_IP:10000"
+}
+p2pAddress="VM_PUBLIC_IP:10200"
+rpcSettings {
+    address="0.0.0.0:10201"
+    adminAddress="0.0.0.0:10202"
+}
+sshd { port = 6000 }
+
+cordappSignerKeyFingerprintBlacklist = []
+
+rpcUsers=[{
+	username=testuser
+	password=password
+	permissions=[ALL]
+
+}]
+
+```
 
 26. You may now run the node.
 To do this let’s create another shell script, run-partya.sh with the following contents, substituting in your VM address, and the ip address:port for both the Network Map and the Doorman.
