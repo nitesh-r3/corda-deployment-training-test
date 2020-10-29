@@ -640,5 +640,4 @@ To do this let’s create another shell script, run-partya.sh with the following
 
 ## E. <a name="Stretch"> Stretch Goal -- Register Another Node and Transact </a>
 
-TBD
-This section will ask the student to add another node based on following instructions of prior section. Then they can run a flow transaction between their two nodes.
+You can register another node in the similar fashion as abpve and perform transactions between them. Make sure to provide different ports to avoid any conficts during mappping. For reference on how to send transactions via node shell please refer to the [link](https://github.com/nitesh-r3/corda-deployment-training-test/blob/main/labs/ha-node-lab/01.Registering-Corda-node.md#exercise-3-performing-a-simple-check-and-launching--a-transaction)
