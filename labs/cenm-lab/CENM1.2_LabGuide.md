@@ -102,7 +102,7 @@ Your instructor will assign an AKS cluster for you to continue.
 
   Switch to v1.2 tag as for this lab we will be using CENM v1.2
    ```
-        git chekout v1.2
+        git checkout v1.2
    ```
 
    Change directory to cenm-deployment/k8s and list the files.
