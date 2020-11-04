@@ -509,7 +509,7 @@ It’s worth noting the node hasn’t actually run yet, so this is an opportunit
     * node won’t notice cordapps without an additional entry: "cordappSignerKeyFingerprintBlacklist = []"
     * can't have rpc users stanza (which must be added) and security sections (which is available by default) together in the node.conf.
 
-25. Using nano (or vim) edit node.conf. Remove the section in the node.conf that is marked in red strikethrough in the below “Before” section, and add the information marked in green in the below “After” section.
+25. Using nano (or vim) edit node.conf which will be found under `config/node.conf`. Remove the section in the node.conf that is marked in red strikethrough in the below “Before” section, and add the information marked in green in the below “After” section.
 
     Before | After
     ------ | -----
