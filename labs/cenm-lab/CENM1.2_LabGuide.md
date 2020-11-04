@@ -634,7 +634,7 @@ To do this let’s create another shell script, run-partya.sh with the following
 (recall from the node.conf that the testuser password is `password`)
 
 33. Once in the node CRaSH run a series of commands to interact with it, for example:
-`>> run flow list`
+`>> flow list`
 `>> run nodeInfo`
 `>> run notaryIdentities`
 
