@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+if [[ -z "$1" ]]; then
+    echo "Please provide resource group as the parameter"
+    echo "  Usage"
+    echo "$ ./infra-details-extraction.sh my-resource-group"
+fi
+
+
 if ! jq --version >/dev/null 2>&1; then
     echo "jq not present"
     exit 1
@@ -11,7 +18,7 @@ if ! az --version >/dev/null 2>&1; then
 fi
 
 #ACCOUNT_NAME="Team Professional Services"
-RG_NAME="ps-rg-nitesh-arnab-dltledgers"
+RG_NAME=$1
 FILE_NAME="ip_details_$(date '+%s' && echo "$EPOCHSECONDS").csv"
 touch "$FILE_NAME"
 
