@@ -102,8 +102,9 @@ Your instructor will assign an AKS cluster for you to continue.
         Resolving deltas: 100% (26/26), done.
    ```
 
-   Change directory to cenm-deployment/k8s and list the files.
+   Checkout to v1.5 & Change directory to cenm-deployment/k8s and list the files.
    ```
+        $ git checkout v1.5
         $ cd cenm-deployment/k8s
         $ ls -la
         total 28
@@ -265,7 +266,7 @@ This should take no more than 5-10 minutes. If it takes more than 10 minutes som
 
 15. Assigning permissions to users
 
-Login to web application http://<GATEWAY-SERVICE-IP>:8080/admin using admin user and credentials. The CENM network has no permissions assigned to Main Zone by default, you need to assign them manually.
+Login to web application `http://<GATEWAY-SERVICE-IP>:8080/admin` using admin user and credentials as provided in below table. The CENM network has no permissions assigned to Main Zone by default, you need to assign them manually.
 
 Get the Gateway-Service-Ip using command:
 ```bash
@@ -281,7 +282,7 @@ Login via the admin credentials:
 
 Go to **User Administration** -> **Roles** then edit **NetworkMaintainer**.
 
-![CENM Role User](assets/cenm-network-maintainer-role.png)
+![CENM Role User](./cenm-network-maintainer-role.png)
 
 Under **Permissions**, click **Add New**. Add the following permissions:
 
@@ -295,6 +296,8 @@ Under **Permissions**, click **Add New**. Add the following permissions:
 
 15. Network operations
 Use the CENM Command Line Interface (CLI) Tool to access the Gateway Service from your local machine. To start the CENM CLI Tool, run Docker command starting a Docker container with the tool:
+
+> **_NOTE:_** Ensure that you have the docker image downloaded locally. Try running command: `docker pull corda/enterprise-cenm-cli:1.5.0-zulu-openjdk8u242` to download the image locally
 
 ```
     docker run  -it --env ACCEPT_LICENSE=Y --name=cenm-cli corda/enterprise-cenm-cli:1.5.0-zulu-openjdk8u242
@@ -498,6 +501,9 @@ Using nano (or vim) create a new file named reg-partya.sh with the following con
 22. Sign the CSR request.
 Use the CENM Command Line Interface (CLI) Tool to access the Gateway Service from your local machine. To start the CENM CLI Tool, run Docker command starting a Docker container with the tool:
 
+> **_NOTE:_** Ensure that you have the docker image downloaded locally. Try running command: `docker pull corda/enterprise-cenm-cli:1.5.0-zulu-openjdk8u242` to download the image locally
+
+
 ```
     docker run  -it --env ACCEPT_LICENSE=Y --name=cenm-cli corda/enterprise-cenm-cli:1.5.0-zulu-openjdk8u242
 
@@ -516,20 +522,24 @@ You can now use cemn commands from within the running Docker container:
 
 ```
     cenm context login -s -u network-maintainer -p p4ssWord http://<GATEWAY-SERVICE-IP>:8080
+    
 ```
+
 The output should look like:
 
 ```
 Login to http://<GATEWAY-SERVICE-IP>:8080 was successful and stored.
 
-Get list of pending CSRs using below command:
+```
+
+Next, get list of pending CSRs using below command and make note of the ID in the output:
 
 ```
     cenm signer csr list
 
 ```
 
-Sign the CSR
+Next Sign the CSR using below command and pass the ID of CSR obtained from previous command:
 
 ```
     cenm signer csr sign <ID>
