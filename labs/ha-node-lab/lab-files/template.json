@@ -1,0 +1,1075 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+		"trainer": {
+			"type": "string",
+            "defaultValue":"Garry",
+			"metadata": {
+				"description": "The name of the trainer"
+			}
+		},
+		"trainerEmail": {
+			"type": "string",
+            "defaultValue":"garry.jackson@r3.com",
+			"metadata": {
+				"description": "The email of the trainer to tag the resources"
+			}
+		},
+        "participantinitials": {
+            "type": "string",
+            "metadata": {
+                "description": "Unique initials of the participant"
+            }
+        },
+        "vmName": {
+            "type": "string",
+            "defaultValue": "[toLower(concat('vmInfra-', parameters('participantinitials')))]",
+            "metadata": {
+                "description": "The label to your of your virtual machines."
+            }
+        },
+        "adminUsername": {
+            "type": "string",
+             "defaultValue": "azureuser",
+            "metadata": {
+                "description": "Username for the Virtual Machine."
+            }
+        },
+
+
+        "adminPassword": {
+            "type": "string",
+            "defaultValue": "NhdsUk7688!xs12f",
+            
+            "metadata": {
+                "description": "Admin password"
+            }
+        },
+        "authenticationType": {
+            "type": "string",
+            "defaultValue": "SSH Public Key",
+            "allowedValues": [
+                "sshPublicKey",
+                "password"
+            ],
+            "metadata": {
+                "description": "Type of authentication to use on the Virtual Machine. SSH key is recommended."
+            }
+        },
+        "adminPasswordOrKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "SSH Key or password for the Virtual Machine. SSH key is recommended."
+            }
+        },
+        "LBDnsLabelPrefix": {
+            "type": "string",
+            "defaultValue": "[toLower(concat('p2p-', parameters('participantinitials')))]",
+            "metadata": {
+                "description": "Unique DNS Name for the LB Public IP used to access the Virtual Machine."
+            }
+        },
+		"vmStagingDnsLabelPrefix": {
+            "type": "string",
+            "defaultValue": "[toLower(concat('p2p-',  parameters('participantinitials'), '-vmStaging'))]",
+            "metadata": {
+                "description": "Unique DNS Name for the vmStaging Public IP used to access the Virtual Machine."
+            }
+        },
+		"vmInfra4DnsLabelPrefix": {
+            "type": "string",
+            "defaultValue": "[toLower(concat('p2p-',  parameters('participantinitials'), '-counterparty'))]",
+            "metadata": {
+                "description": "Unique DNS Name for the vmInfra4 (hosts counter-party node) Public IP used to access the Virtual Machine."
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Location for all resources."
+            }
+        },
+        "VmSize": {
+            "type": "string",
+            "defaultValue": "Standard_DS1_v2",
+            "metadata": {
+                "description": "The size of the VM"
+            }
+        },
+        "virtualNetworkName": {
+            "type": "string",
+            "defaultValue": "vnet",
+            "metadata": {
+                "description": "Prefix name of the VNET, while subnet name is fixed"
+            }
+        },
+		"staging_vm_image_with_labs": {
+            "defaultValue": "/subscriptions/af4f0732-dd8c-4330-a357-b9593255c3f0/resourceGroups/ps-training-labs/providers/Microsoft.Compute/galleries/trainingGallery/images/vmStagingBase/versions/0.0.2",
+            "type": "String"
+        },
+		"ubuntu-java-262u-infra": {
+            "defaultValue": "/subscriptions/af4f0732-dd8c-4330-a357-b9593255c3f0/resourceGroups/ps-training-labs/providers/Microsoft.Compute/galleries/trainingGallery/images/vmInfraBaseImage/versions/1.0.0",
+            "type": "String"
+        }
+    },
+    "variables": {
+		"virtualNetworkNameAll": "[parameters('virtualNetworkName')]",
+		"subnetName": "Subnet",
+		"vmStaging": "[concat(parameters('vmName'), 'Staging')]",
+		"vmInfra1": "[concat(parameters('vmName'), '-1')]",
+		"vmInfra2": "[concat(parameters('vmName'), '-2')]",
+		"vmInfra3": "[concat(parameters('vmName'), '-3')]",
+		"vmInfra4": "[concat(parameters('vmName'), '-4')]",
+        "publicIpAddressNameVmInfraStaging": "[concat(variables('vmStaging'), 'PublicIP' )]",
+        "networkInterfaceNameVmInfraStaging": "[concat(variables('vmStaging'),'NetInt')]",
+		"networkSecurityGroupNameVmInfraStaging": "[concat(variables('vmStaging'),'SecGroupNet')]",
+		"publicIpAddressNameVmInfra1": "[concat(variables('vmInfra1'), 'PublicIP' )]",
+        "networkInterfaceNameVmInfra1": "[concat(variables('vmInfra1'),'NetInt')]",
+		"networkSecurityGroupNameVmInfra1": "[concat(variables('vmInfra1'),'SecGroupNet')]",
+		"publicIpAddressNameVmInfra2": "[concat(variables('vmInfra2'), 'PublicIP' )]",
+        "networkInterfaceNameVmInfra2": "[concat(variables('vmInfra2'),'NetInt')]",
+		"networkSecurityGroupNameVmInfra2": "[concat(variables('vmInfra2'),'SecGroupNet')]",
+		"publicIpAddressNameVmInfra3": "[concat(variables('vmInfra3'), 'PublicIP' )]",
+        "networkInterfaceNameVmInfra3": "[concat(variables('vmInfra3'),'NetInt')]",
+		"networkSecurityGroupNameVmInfra3": "[concat(variables('vmInfra3'),'SecGroupNet')]",
+		"publicIpAddressNameVmInfra4": "[concat(variables('vmInfra4'), 'PublicIP' )]",
+        "networkInterfaceNameVmInfra4": "[concat(variables('vmInfra4'),'NetInt')]",
+		"networkSecurityGroupNameVmInfra4": "[concat(variables('vmInfra4'),'SecGroupNet')]",
+		"availabilitySetName": "[concat('as-', parameters('participantinitials'))]",
+		"HAloadbalancer": "[concat('ps-lb-', parameters('participantinitials'))]",
+		"publicIpAddressNameLoadBalancer": "[concat('ps-ip-', parameters('participantinitials'))]",
+		"backendPoolLoadBalancer": "[concat('ps-bp-', parameters('participantinitials'))]",
+		"loadBalancingRules": "[concat('ps-lbrules-', parameters('participantinitials'))]",
+		"loadBalancerHealthProbe": "[concat('ps-health-', parameters('participantinitials'))]",
+        "subnetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkNameAll'), variables('subnetName'))]",
+		"databaseServerName": "[concat('ps-dbserver-', parameters('participantinitials'))]",
+		"partyaDatabaseName": "[concat('ps-db-', parameters('participantinitials'), '-partya')]",
+		"partycDatabaseName": "[concat('ps-db-', parameters('participantinitials'), '-partyc')]",
+        "osDiskType": "Standard_LRS",
+        "subnetAddressPrefix": "10.1.0.0/24",
+        "addressPrefix": "10.1.0.0/16",
+        "linuxConfiguration": {
+            "disablePasswordAuthentication": true,
+            "ssh": {
+                "publicKeys": [
+                    {
+                        "path": "[concat('/home/', parameters('adminUsername'), '/.ssh/authorized_keys')]",
+                        "keyData": "[parameters('adminPasswordOrKey')]"
+                    }
+                ]
+            }
+        }
+    },
+    "resources": [
+        {
+			"type": "Microsoft.Compute/availabilitySets",
+			"name": "[variables('availabilitySetName')]",
+			"apiVersion": "2019-07-01",
+			"location": "[parameters('location')]",
+			"sku": {
+                "name": "Aligned"
+            },
+			"properties": {
+				"platformFaultDomainCount": 2,
+				"platformUpdateDomainCount": 2
+			}
+		},
+		{
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2018-10-01",
+            "name": "[variables('networkInterfaceNameVmInfraStaging')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups/', variables('networkSecurityGroupNameVmInfraStaging'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks/', variables('virtualNetworkNameAll'))]",
+                "[resourceId('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressNameVmInfraStaging'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "subnet": {
+                                "id": "[variables('subnetRef')]"
+                            },
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIpAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIpAddressNameVmInfraStaging'))]"
+                            }
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('networkSecurityGroupNameVmInfraStaging'))]"
+                }
+            }
+        },
+		{
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2018-10-01",
+            "name": "[variables('networkInterfaceNameVmInfra1')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups/', variables('networkSecurityGroupNameVmInfra1'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks/', variables('virtualNetworkNameAll'))]",
+                "[resourceId('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressNameVmInfra1'))]",
+				"[resourceId('Microsoft.Network/loadBalancers/', variables('HAloadbalancer'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "subnet": {
+                                "id": "[variables('subnetRef')]"
+                            },
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIpAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIpAddressNameVmInfra1'))]"
+                            },
+							"loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('HAloadbalancer')), '/backendAddressPools/', variables('backendPoolLoadBalancer'))]"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('networkSecurityGroupNameVmInfra1'))]"
+                }
+            }
+        },
+		{
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2018-10-01",
+            "name": "[variables('networkInterfaceNameVmInfra2')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups/', variables('networkSecurityGroupNameVmInfra2'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks/', variables('virtualNetworkNameAll'))]",
+                "[resourceId('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressNameVmInfra2'))]",
+				"[resourceId('Microsoft.Network/loadBalancers/', variables('HAloadbalancer'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "subnet": {
+                                "id": "[variables('subnetRef')]"
+                            },
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIpAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIpAddressNameVmInfra2'))]"
+                            },
+							"loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('HAloadbalancer')), '/backendAddressPools/', variables('backendPoolLoadBalancer'))]"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('networkSecurityGroupNameVmInfra2'))]"
+                }
+            }
+        },
+		{
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2018-10-01",
+            "name": "[variables('networkInterfaceNameVmInfra3')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups/', variables('networkSecurityGroupNameVmInfra3'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks/', variables('virtualNetworkNameAll'))]",
+                "[resourceId('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressNameVmInfra3'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "subnet": {
+                                "id": "[variables('subnetRef')]"
+                            },
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIpAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIpAddressNameVmInfra3'))]"
+                            }
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('networkSecurityGroupNameVmInfra3'))]"
+                }
+            }
+        },
+		{
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2018-10-01",
+            "name": "[variables('networkInterfaceNameVmInfra4')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups/', variables('networkSecurityGroupNameVmInfra4'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks/', variables('virtualNetworkNameAll'))]",
+                "[resourceId('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressNameVmInfra4'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "subnet": {
+                                "id": "[variables('subnetRef')]"
+                            },
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIpAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIpAddressNameVmInfra4'))]"
+                            }
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('networkSecurityGroupNameVmInfra4'))]"
+                }
+            }
+        },
+		{
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2019-02-01",
+            "name": "[variables('networkSecurityGroupNameVmInfraStaging')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "SSH",
+                        "properties": {
+                            "priority": 1000,
+                            "protocol": "TCP",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "sourceAddressPrefix": "*",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "*",
+                            "destinationPortRange": "22"
+                        }
+                    },
+					{
+                        "name": "Port_p2p",
+                        "properties": {
+							"priority": 310,
+                            "protocol": "*",
+							"access": "Allow",
+							"direction": "Inbound",
+							"sourceAddressPrefix": "*",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "*",
+							"destinationPortRanges": [
+                                "10005",
+                                "10008"
+                            ]
+                        }
+					}
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2019-02-01",
+            "name": "[variables('networkSecurityGroupNameVmInfra1')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "SSH",
+                        "properties": {
+                            "priority": 1000,
+                            "protocol": "TCP",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "sourceAddressPrefix": "*",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "*",
+                            "destinationPortRange": "22"
+                        }
+                    },
+					{
+                        "name": "Port_Float",
+                        "properties": {
+							"priority": 310,
+                            "protocol": "*",
+							"access": "Allow",
+							"direction": "Inbound",
+							"sourceAddressPrefix": "*",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "*",
+							"destinationPortRange": "10005"
+                        }
+					}
+                ]
+            }
+        },
+		{
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2019-02-01",
+            "name": "[variables('networkSecurityGroupNameVmInfra2')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "SSH",
+                        "properties": {
+                            "priority": 1000,
+                            "protocol": "TCP",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "sourceAddressPrefix": "*",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "*",
+                            "destinationPortRange": "22"
+                        }
+                    },
+					{
+                        "name": "Port_Float",
+                        "properties": {
+							"priority": 310,
+                            "protocol": "*",
+							"access": "Allow",
+							"direction": "Inbound",
+							"sourceAddressPrefix": "*",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "*",
+							"destinationPortRange": "10005"
+                        }
+					}
+                ]
+            }
+        },
+		{
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2019-02-01",
+            "name": "[variables('networkSecurityGroupNameVmInfra3')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "SSH",
+                        "properties": {
+                            "priority": 1000,
+                            "protocol": "TCP",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "sourceAddressPrefix": "*",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "*",
+                            "destinationPortRange": "22"
+                        }
+                    }
+                ]
+            }
+        },
+		{
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2019-02-01",
+            "name": "[variables('networkSecurityGroupNameVmInfra4')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "SSH",
+                        "properties": {
+                            "priority": 1000,
+                            "protocol": "TCP",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "sourceAddressPrefix": "*",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "*",
+                            "destinationPortRange": "22"
+                        }
+                    },
+					{
+                        "name": "Port_Partyb",
+                        "properties": {
+							"priority": 310,
+                            "protocol": "*",
+							"access": "Allow",
+							"direction": "Inbound",
+							"sourceAddressPrefix": "*",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "*",
+							"destinationPortRange": "10008"
+                        }
+					}
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2019-04-01",
+            "name": "[variables('virtualNetworkNameAll')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('addressPrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('subnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('subnetAddressPrefix')]",
+							"serviceEndpoints": [
+                                {
+                                    "service": "Microsoft.Sql",
+                                    "locations": [
+                                        "[parameters('location')]"
+                                    ]
+                                }
+                            ],
+                            "privateEndpointNetworkPolicies": "Enabled",
+                            "privateLinkServiceNetworkPolicies": "Enabled"
+                        }
+                    }
+                ]
+            }
+        },
+		{
+            "type": "Microsoft.Network/publicIpAddresses",
+            "apiVersion": "2019-02-01",
+            "name": "[variables('publicIpAddressNameVmInfraStaging')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "publicIpAllocationMethod": "Static",
+                "publicIPAddressVersion": "IPv4",
+				"dnsSettings": {
+                    "domainNameLabel": "[parameters('vmStagingDnsLabelPrefix')]"
+                },
+                "idleTimeoutInMinutes": 4
+            },
+            "sku": {
+                "name": "Basic",
+                "tier": "Regional"
+            }
+        },
+        {
+            "type": "Microsoft.Network/publicIpAddresses",
+            "apiVersion": "2019-02-01",
+            "name": "[variables('publicIpAddressNameVmInfra1')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "publicIpAllocationMethod": "Static",
+                "publicIPAddressVersion": "IPv4",
+                "idleTimeoutInMinutes": 4
+            },
+			"sku": {
+                "name": "Standard"
+            }
+        },
+		{
+            "type": "Microsoft.Network/publicIpAddresses",
+            "apiVersion": "2019-02-01",
+            "name": "[variables('publicIpAddressNameVmInfra2')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "publicIpAllocationMethod": "Static",
+                "publicIPAddressVersion": "IPv4",
+                "idleTimeoutInMinutes": 4
+            },
+            "sku": {
+                "name": "Standard"
+            }
+        },
+		{
+            "type": "Microsoft.Network/publicIpAddresses",
+            "apiVersion": "2019-02-01",
+            "name": "[variables('publicIpAddressNameVmInfra3')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "publicIpAllocationMethod": "Static",
+                "publicIPAddressVersion": "IPv4",
+                "idleTimeoutInMinutes": 4
+            },
+            "sku": {
+                "name": "Basic",
+                "tier": "Regional"
+            }
+        },
+		{
+            "type": "Microsoft.Network/publicIpAddresses",
+            "apiVersion": "2019-02-01",
+            "name": "[variables('publicIpAddressNameVmInfra4')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "publicIpAllocationMethod": "Static",
+                "publicIPAddressVersion": "IPv4",
+				"dnsSettings": {
+                    "domainNameLabel": "[parameters('vmInfra4DnsLabelPrefix')]"
+                },
+                "idleTimeoutInMinutes": 4
+            },
+            "sku": {
+                "name": "Basic",
+                "tier": "Regional"
+            }
+        },
+		{
+            "type": "Microsoft.Network/publicIpAddresses",
+            "apiVersion": "2019-02-01",
+            "name": "[variables('publicIpAddressNameLoadBalancer')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "publicIpAllocationMethod": "Static",
+                "publicIPAddressVersion": "IPv4",
+				"dnsSettings": {
+                    "domainNameLabel": "[parameters('LBDnsLabelPrefix')]"
+                },
+                "idleTimeoutInMinutes": 4
+            },
+            "sku": {
+                "name": "Standard"
+            }
+        },
+		{
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2019-03-01",
+            "name": "[variables('vmStaging')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces/', variables('networkInterfaceNameVmInfraStaging'))]"
+            ],
+			"tags": {
+                "Owner": "[parameters('trainerEmail')]"
+            },
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('VmSize')]"
+                },
+                "storageProfile": {
+                    "osDisk": {
+                        "createOption": "fromImage",
+                        "managedDisk": {
+                            "storageAccountType": "[variables('osDiskType')]"
+                        }
+                    },
+                    "imageReference": {
+                        "id": "[parameters('ubuntu-java-262u-infra')]"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceNameVmInfraStaging'))]"
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[variables('vmStaging')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPasswordOrKey')]",
+                    "linuxConfiguration": "[if(equals(parameters('authenticationType'), 'password'), json('null'), variables('linuxConfiguration'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2019-03-01",
+            "name": "[variables('vmInfra1')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces/', variables('networkInterfaceNameVmInfra1'))]",
+				"[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySetName'))]"
+            ],
+			"tags": {
+                "Owner": "[parameters('trainerEmail')]"
+            },
+            "properties": {
+				"availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySetName'))]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "[parameters('VmSize')]"
+                },
+                "storageProfile": {
+                    "osDisk": {
+                        "createOption": "fromImage",
+                        "managedDisk": {
+                            "storageAccountType": "[variables('osDiskType')]"
+                        }
+                    },
+                    "imageReference": {
+                        "id": "[parameters('staging_vm_image_with_labs')]"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceNameVmInfra1'))]"
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[variables('vmInfra1')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPasswordOrKey')]",
+                    "linuxConfiguration": "[if(equals(parameters('authenticationType'), 'password'), json('null'), variables('linuxConfiguration'))]"
+                }
+            }
+        },
+		{
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2019-03-01",
+            "name": "[variables('vmInfra2')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces/', variables('networkInterfaceNameVmInfra2'))]",
+				"[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySetName'))]"
+            ],
+			"tags": {
+                "Owner": "[parameters('trainerEmail')]"
+            },
+            "properties": {
+				"availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySetName'))]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "[parameters('VmSize')]"
+                },
+                "storageProfile": {
+                    "osDisk": {
+                        "createOption": "fromImage",
+                        "managedDisk": {
+                            "storageAccountType": "[variables('osDiskType')]"
+                        }
+                    },
+                    "imageReference": {
+                        "id": "[parameters('staging_vm_image_with_labs')]"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceNameVmInfra2'))]"
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[variables('vmInfra2')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPasswordOrKey')]",
+                    "linuxConfiguration": "[if(equals(parameters('authenticationType'), 'password'), json('null'), variables('linuxConfiguration'))]"
+                }
+            }
+        },
+		{
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2019-03-01",
+            "name": "[variables('vmInfra3')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces/', variables('networkInterfaceNameVmInfra3'))]"
+            ],
+			"tags": {
+                "Owner": "[parameters('trainerEmail')]"
+            },
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('VmSize')]"
+                },
+                "storageProfile": {
+                    "osDisk": {
+                        "createOption": "fromImage",
+                        "managedDisk": {
+                            "storageAccountType": "[variables('osDiskType')]"
+                        }
+                    },
+                    "imageReference": {
+                        "id": "[parameters('staging_vm_image_with_labs')]"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceNameVmInfra3'))]"
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[variables('vmInfra3')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPasswordOrKey')]",
+                    "linuxConfiguration": "[if(equals(parameters('authenticationType'), 'password'), json('null'), variables('linuxConfiguration'))]"
+                }
+            }
+        },
+		{
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2019-03-01",
+            "name": "[variables('vmInfra4')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces/', variables('networkInterfaceNameVmInfra4'))]"
+            ],
+			"tags": {
+                "Owner": "[parameters('trainerEmail')]"
+            },
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('VmSize')]"
+                },
+                "storageProfile": {
+                    "osDisk": {
+                        "createOption": "fromImage",
+                        "managedDisk": {
+                            "storageAccountType": "[variables('osDiskType')]"
+                        }
+                    },
+                    "imageReference": {
+                        "id": "[parameters('staging_vm_image_with_labs')]"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceNameVmInfra4'))]"
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[variables('vmInfra4')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPasswordOrKey')]",
+                    "linuxConfiguration": "[if(equals(parameters('authenticationType'), 'password'), json('null'), variables('linuxConfiguration'))]"
+                }
+            }
+        },
+		{
+            "type": "Microsoft.Network/loadBalancers",
+            "apiVersion": "2020-04-01",
+            "name": "[variables('HAloadbalancer')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpAddressNameLoadBalancer'))]"  
+            ],
+            "tags": {
+                "Owner": "[parameters('trainerEmail')]"
+            },
+            "sku": {
+                "name": "Standard"
+            },
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "name": "LoadBalancerFrontEnd",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpAddressNameLoadBalancer'))]"
+                            },
+                            "privateIPAddressVersion": "IPv4"
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "[variables('backendPoolLoadBalancer')]"
+                    }
+                ],
+                "loadBalancingRules": [
+					{
+                        "name": "[variables('loadBalancingRules')]",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('HAloadbalancer')), '/frontendIPConfigurations/LoadBalancerFrontEnd')]"
+                            },
+                            "frontendPort": 10005,
+                            "backendPort": 10005,
+                            "enableFloatingIP": false,
+                            "idleTimeoutInMinutes": 4,
+                            "protocol": "Tcp",
+                            "enableTcpReset": false,
+                            "loadDistribution": "Default",
+                            "disableOutboundSnat": false,
+                            "backendAddressPool": {
+                                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('HAloadbalancer')), '/backendAddressPools/', variables('backendPoolLoadBalancer'))]"
+                            },
+                            "probe": {
+                                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('HAloadbalancer')), '/probes/', variables('loadBalancerHealthProbe'))]"
+                            }
+                        }
+                    }
+				],
+                "probes": [
+					{
+						"name": "[variables('loadBalancerHealthProbe')]",
+						"properties": {
+							"protocol": "Tcp",
+							"port": 10005,
+							"intervalInSeconds": 5,
+							"numberOfProbes": 2
+						}
+					}
+				],
+                "inboundNatRules": [],
+                "outboundRules": [],
+                "inboundNatPools": []
+            }
+        },
+		{
+            "type": "Microsoft.Sql/servers",
+            "apiVersion": "2019-06-01-preview",
+            "name": "[variables('databaseServerName')]",
+            "location": "[parameters('location')]",
+            "tags": {
+                "Owner": "[parameters('trainerEmail')]"
+            },
+            "kind": "v12.0",
+            "properties": {
+                "administratorLogin": "[parameters('adminUsername')]",
+				"administratorLoginPassword": "[parameters('adminPassword')]",
+                "version": "12.0"
+            },
+			"resources": [
+                {
+                    "type": "virtualNetworkRules",
+                    "name": "newVnetRule1",
+                    "apiVersion": "2015-05-01-preview",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Sql/servers', variables('databaseServerName'))]",
+						"[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkNameAll'))]"
+                    ],
+                    "properties": {
+                        "virtualNetworkSubnetId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkNameAll'), variables('subnetName'))]",
+                        "ignoreMissingVnetServiceEndpoint": false
+                    }
+                }
+            ]
+        },
+        {
+            "type": "Microsoft.Sql/servers/databases",
+            "apiVersion": "2019-06-01-preview",
+            "name": "[concat(variables('databaseServerName'), '/', variables('partyaDatabaseName'))]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', variables('databaseServerName'))]"
+            ],
+            "tags": {
+                "Owner": "[parameters('trainerEmail')]"
+            },
+            "sku": {
+                "name": "Basic",
+                "tier": "Basic",
+                "capacity": 5
+            },
+            "kind": "v12.0,user",
+            "properties": {
+                "collation": "SQL_Latin1_General_CP1_CI_AS",
+                "maxSizeBytes": 2147483648,
+                "catalogCollation": "SQL_Latin1_General_CP1_CI_AS",
+                "zoneRedundant": false,
+                "readScale": "Disabled",
+                "readReplicaCount": 0,
+                "storageAccountType": "GRS"
+            }
+        },
+		{
+            "type": "Microsoft.Sql/servers/databases",
+            "apiVersion": "2019-06-01-preview",
+            "name": "[concat(variables('databaseServerName'), '/', variables('partycDatabaseName'))]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', variables('databaseServerName'))]"
+            ],
+            "tags": {
+                "Owner": "[parameters('trainerEmail')]"
+            },
+            "sku": {
+                "name": "Basic",
+                "tier": "Basic",
+                "capacity": 5
+            },
+            "kind": "v12.0,user",
+            "properties": {
+                "collation": "SQL_Latin1_General_CP1_CI_AS",
+                "maxSizeBytes": 2147483648,
+                "catalogCollation": "SQL_Latin1_General_CP1_CI_AS",
+                "zoneRedundant": false,
+                "readScale": "Disabled",
+                "readReplicaCount": 0,
+                "storageAccountType": "GRS"
+            }
+        }
+    ],
+    "outputs": {
+        "adminUsername": {
+            "type": "string",
+            "value": "[parameters('adminUsername')]"
+        },
+		"adminPassword": {
+            "type": "string",
+            "value": "[parameters('adminPasswordOrKey')]"
+        },
+		"hostnameForVmStaging": {
+            "type": "string",
+            "value": "[reference(variables('publicIpAddressNameVmInfraStaging')).dnsSettings.fqdn]"
+        },
+		"publicIpForVmStaging": {
+            "type": "string",
+            "value": "[reference(variables('publicIpAddressNameVmInfraStaging')).IpAddress]"
+        },
+		"privateIpForVmStaging": {
+            "type": "string",
+            "value": "[reference(variables('networkInterfaceNameVmInfraStaging')).ipConfigurations[0].properties.privateIPAddress]"
+        },
+		"loadBalanceUrl": {
+            "type": "string",
+            "value": "[reference(variables('publicIpAddressNameLoadBalancer')).dnsSettings.fqdn]"
+        },
+		"publicIpForVmInfra1": {
+            "type": "string",
+            "value": "[reference(variables('publicIpAddressNameVmInfra1')).IpAddress]"
+        },
+		"privateIpForVmInfra1": {
+            "type": "string",
+            "value": "[reference(variables('networkInterfaceNameVmInfra1')).ipConfigurations[0].properties.privateIPAddress]"
+        },
+        "publicIpForVmInfra2": {
+            "type": "string",
+            "value": "[reference(variables('publicIpAddressNameVmInfra2')).IpAddress]"
+        },
+        "privateIpForVmInfra2": {
+            "type": "string",
+            "value": "[reference(variables('networkInterfaceNameVmInfra2')).ipConfigurations[0].properties.privateIPAddress]"
+        },
+        "publicIpForVmInfra3": {
+            "type": "string",
+            "value": "[reference(variables('publicIpAddressNameVmInfra3')).IpAddress]"
+        },
+        "privateIpForVmInfra3": {
+            "type": "string",
+            "value": "[reference(variables('networkInterfaceNameVmInfra3')).ipConfigurations[0].properties.privateIPAddress]"
+        },
+        "hostnameForVmInfra4": {
+            "type": "string",
+            "value": "[reference(variables('publicIpAddressNameVmInfra4')).dnsSettings.fqdn]"
+        },
+        "publicIpForVmInfra4": {
+            "type": "string",
+            "value": "[reference(variables('publicIpAddressNameVmInfra4')).IpAddress]"
+        },
+        "privateIpForVmInfra4": {
+            "type": "string",
+            "value": "[reference(variables('networkInterfaceNameVmInfra4')).ipConfigurations[0].properties.privateIPAddress]"
+        },
+        "sshCommandExample": {
+            "type": "string",
+            "value": "[concat('ssh ', parameters('adminUsername'), '@', reference(variables('publicIpAddressNameVmInfra4')).dnsSettings.fqdn)]"
+        }
+       
+    }
+}
