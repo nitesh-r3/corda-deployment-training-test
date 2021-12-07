@@ -457,7 +457,7 @@ Using nano (or vim) create a new file named reg-partya.sh with the following con
             -e MY_PUBLIC_ADDRESS="<find your vm address>" \
             -e NETWORKMAP_URL="http://<find the Network Map ip:port>" \
             -e DOORMAN_URL="http://<find the Doorman ip:port>" \
-            -e NETWORK_TRUST_PASSWORD="trustPass" \
+            -e NETWORK_TRUST_PASSWORD="trust-store-password" \
             -e MY_EMAIL_ADDRESS="cordauser@r3.com" \
             -e ACCEPT_LICENSE="YES" \
             -v /home/azureuser/partya/config:/etc/corda          \
