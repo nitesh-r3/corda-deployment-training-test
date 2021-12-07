@@ -161,7 +161,7 @@ Notice the references to the namespace: cenm. We will address this in the next s
                     interval = {{ .Values.signers.CRL.schedule.interval }}
                 }
     ```
-   Now change directory up one level, i.e., ```cd ...``` and open values.yaml, i.e., ```cat values.yaml```
+   Now change directory up one level, i.e., ```cd ..``` and open values.yaml, i.e., ```cat values.yaml```
    Notice in stanza containing the CSR interval that will be substituted into the signer.conf file by the helm script. It’s set for 1 minute.
 
    Notice how these values associate with the variable you viewed in the signer.conf file.
@@ -438,7 +438,7 @@ You will need to first find the pod name of the signer.
     ```
     Using kubectl copy the network-root-truststore.jks from the signer pod to your newly created certificates directory.
     ```
-        $ kubectl cp cenm/<signer-pod>:DATA/trust-stores/network-root-truststore.jks certificates/network-root-truststore.jks
+        $ kubectl cp cenm/<signer-pod>:DATA/trust-stores/network-root-truststore.jks certificates/network-root-truststore.jks -c main
     ```
 18. Download the sample Finance cordapp files (contracts and workfows) from Corda binary repository.
     ```
@@ -453,15 +453,16 @@ Using nano (or vim) create a new file named reg-partya.sh with the following con
     ```
         #!/bin/sh
         docker run -ti --net="host" \
-                -e MY_LEGAL_NAME="O=PartyA, L=New York, C=US"     \
-                -e MY_PUBLIC_ADDRESS="<find your vm address>"	\
-                -e NETWORKMAP_URL="http://<find the Network Map ip:port>"	\
-                -e DOORMAN_URL="http://<find the Doorman ip:port>"	\
-                -e NETWORK_TRUST_PASSWORD="trust-store-password"       \
-                -e MY_EMAIL_ADDRESS="myemail@r3.com"      \
-                -v /home/azureuser/partya/config:/etc/corda          \
-                -v /home/azureuser/partya/certificates:/opt/corda/certificates \
-                corda/corda-zulu-java1.8-4.4 config-generator --generic --exit-on-generate
+            -e MY_LEGAL_NAME="O=PartyA, L=New York, C=US" \
+            -e MY_PUBLIC_ADDRESS="<find your vm address>" \
+            -e NETWORKMAP_URL="http://<find the Network Map ip:port>" \
+            -e DOORMAN_URL="http://<find the Doorman ip:port>" \
+            -e NETWORK_TRUST_PASSWORD="trust-store-password" \
+            -e MY_EMAIL_ADDRESS="cordauser@r3.com" \
+            -e ACCEPT_LICENSE="YES" \
+            -v /home/azureuser/partya/config:/etc/corda          \
+            -v /home/azureuser/partya/certificates:/opt/corda/certificates \
+            corda/corda-zulu-java1.8-4.8:latest config-generator --generic --exit-on-generate
     ```
     > **_NOTE:_** Do take note that all the paths are absolute, so make sure you enter the right paths to the corresponding folders
     
@@ -585,7 +586,7 @@ To do this let’s create another shell script, run-partya.sh with the following
                 -p 10200:10200 \
                 -p 10201:10201 \
                 -p 6000:6000 \
-                corda/corda-zulu-java1.8-4.4
+                corda/corda-zulu-java1.8-4.8:latest
     ```
     Ensure your new shell script has execute permissions.
     `sudo chmod ug+x run-partya.sh`
@@ -600,7 +601,7 @@ To do this let’s create another shell script, run-partya.sh with the following
         / /___  /_/ / /  / /_/ / /_/ /    
         \____/     /_/   \__,_/\__,_/     
 
-        --- Corda 4.4 (e7e59c8) --------------------------------------------------
+        --- Corda 4.8 (e7e59c8) --------------------------------------------------
 
         Tip: If you don't wish to use the shell it can be disabled with the --no-local-shell flag
 
@@ -623,25 +624,25 @@ To do this let’s create another shell script, run-partya.sh with the following
     ```
         version: '3.5'
         services:
-          partya-node:
+            partya-node:
+                networks:
+                    - partya-net
+                ports:
+                    - "10200:10200"
+                    - "10201:10201"
+                    - "10202:10202"
+                    - "6000:6000"
+                image: corda/corda-zulu-java1.8-4.8:latest
+                container_name: partya-node
+                volumes:
+                    - /home/azureuser/partya/config:/etc/corda
+                    - /home/azureuser/partya/certificates:/opt/corda/certificates
+                    - /home/azureuser/partya/persistence:/opt/corda/persistence
+                    - /home/azureuser/partya/logs:/opt/corda/logs
+                    - /home/azureuser/partya/cordapps:/opt/corda/cordapps
             networks:
-              - partya-net
-            ports:
-              - "10200:10200"
-              - "10201:10201"
-              - "10202:10202"
-              - "6000:6000"
-            image: corda/corda-zulu-java1.8-4.4:RELEASE
-            container_name: partya-node
-            volumes:
-              - /home/azureuser/partya/config:/etc/corda
-              - /home/azureuser/partya/certificates:/opt/corda/certificates
-              - /home/azureuser/partya/persistence:/opt/corda/persistence
-              - /home/azureuser/partya/logs:/opt/corda/logs
-              - /home/azureuser/partya/cordapps:/opt/corda/cordapps
-        networks:
-          partya-net:
-            driver: bridge
+                partya-net:
+                    driver: bridge
     ```
 
 30. Start your node `docker-compose up -d partya-node`
