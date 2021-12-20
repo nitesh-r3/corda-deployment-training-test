@@ -460,6 +460,8 @@ Using nano (or vim) create a new file named reg-partya.sh with the following con
             -e NETWORK_TRUST_PASSWORD="trust-store-password" \
             -e MY_EMAIL_ADDRESS="cordauser@r3.com" \
             -e ACCEPT_LICENSE="YES" \
+            -e SSHPORT="2222" \
+            -e RPC_USER="PartyA" \
             -v /home/azureuser/partya/config:/etc/corda          \
             -v /home/azureuser/partya/certificates:/opt/corda/certificates \
             corda/corda-zulu-java1.8-4.8:latest config-generator --generic --exit-on-generate
@@ -572,7 +574,20 @@ It’s worth noting the node hasn’t actually run yet, so this is an opportunit
     ![](resources/CENMLabNodeconfBefore.jpg) | ![](resources/CENMLabNodeconfAfter.jpg)
 
 26. You may now run the node.
-To do this let’s create another shell script, run-partya.sh with the following contents, substituting in your VM address, and the ip address:port for both the Network Map and the Doorman.
+To do this let’s create another shell script, run-partya.sh with the following contents, substituting in your VM address, and the ip address:port for both the Network Map and the Doorman.  
+
+Run database migration script:  
+    ```
+        docker run -ti \
+            -v /home/azureuser/partya/config:/etc/corda \
+            -v /home/azureuser/partya/certificates:/opt/corda/certificates \
+            -v /home/azureuser/partya/persistence:/opt/corda/persistence \
+            -v /home/azureuser/partya/logs:/opt/corda/logs \
+            -v /home/azureuser/partya/cordapps:/opt/corda/cordapps \
+            corda/corda-zulu-java1.8-4.8:latest db-migrate-execute-migration
+    ```
+
+Start the corda node:  
     ```
         #!/bin/sh
         docker run -ti \
@@ -587,7 +602,7 @@ To do this let’s create another shell script, run-partya.sh with the following
                 -p 10201:10201 \
                 -p 6000:6000 \
                 corda/corda-zulu-java1.8-4.8:latest
-    ```
+    ```  
     Ensure your new shell script has execute permissions.
     `sudo chmod ug+x run-partya.sh`
 
