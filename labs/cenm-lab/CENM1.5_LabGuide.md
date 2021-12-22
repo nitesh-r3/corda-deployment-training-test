@@ -592,7 +592,7 @@ Start the corda node by pasting the below contents into a file `run-partya.sh`:
 #!/bin/sh
 docker run -ti \
         --memory=2048m \
-        --cpus=2 \
+        --cpus=1 \
         -v /home/azureuser/partya/config:/etc/corda \
         -v /home/azureuser/partya/certificates:/opt/corda/certificates \
         -v /home/azureuser/partya/persistence:/opt/corda/persistence \
