@@ -637,27 +637,27 @@ Start the corda node:
 
 29. Prepare a Docker Compose file (`docker-compose.yaml`) to start/stop your node.
     ```
-        version: '3.5'
-        services:
-            partya-node:
-                networks:
-                    - partya-net
-                ports:
-                    - "10200:10200"
-                    - "10201:10201"
-                    - "10202:10202"
-                    - "6000:6000"
-                image: corda/corda-zulu-java1.8-4.8:latest
-                container_name: partya-node
-                volumes:
-                    - /home/azureuser/partya/config:/etc/corda
-                    - /home/azureuser/partya/certificates:/opt/corda/certificates
-                    - /home/azureuser/partya/persistence:/opt/corda/persistence
-                    - /home/azureuser/partya/logs:/opt/corda/logs
-                    - /home/azureuser/partya/cordapps:/opt/corda/cordapps
-            networks:
-                partya-net:
-                    driver: bridge
+    version: '3.5'
+    services:
+      partya-node:
+        networks:
+            - partya-net
+        ports:
+            - "10200:10200"
+            - "10201:10201"
+            - "10202:10202"
+            - "6000:6000"
+        image: corda/corda-zulu-java1.8-4.8:latest
+        container_name: partya-node
+        volumes:
+            - /home/azureuser/partya/config:/etc/corda
+            - /home/azureuser/partya/certificates:/opt/corda/certificates
+            - /home/azureuser/partya/persistence:/opt/corda/persistence
+            - /home/azureuser/partya/logs:/opt/corda/logs
+            - /home/azureuser/partya/cordapps:/opt/corda/cordapps
+    networks: 
+      partya-net:
+        driver: bridge
     ```
 
 30. Start your node `docker-compose up -d partya-node`
