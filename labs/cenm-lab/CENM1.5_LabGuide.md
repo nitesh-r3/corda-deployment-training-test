@@ -443,8 +443,8 @@ You will need to first find the pod name of the signer.
 18. Download the sample Finance cordapp files (contracts and workfows) from Corda binary repository.
     ```
         cd cordapps
-        curl -O https://software.r3.com/artifactory/corda/net/corda/corda-finance-contracts/4.4/corda-finance-contracts-4.4.jar
-        curl -O https://software.r3.com/artifactory/corda/net/corda/corda-finance-workflows/4.4/corda-finance-workflows-4.4.jar
+        curl -O https://software.r3.com/artifactory/corda/net/corda/corda-finance-contracts/4.8/corda-finance-contracts-4.8.jar
+        curl -O https://software.r3.com/artifactory/corda/net/corda/corda-finance-workflows/4.8/corda-finance-workflows-4.8.jar
     ```
 19. Find out from the instructor the public address for the virtual machine you are using. It should be the one you used to ssh from your laptop.
 
